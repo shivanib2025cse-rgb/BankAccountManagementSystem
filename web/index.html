@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Account Management System | NovaBank</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="theme-dark">
+
+    <div id="authGate" class="auth-gate" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <div class="auth-card">
+            <div class="brand-logo auth-logo">NB</div>
+            <h1 id="authTitle">Sign in to NovaBank</h1>
+            <p class="subtitle">Your session is private and expires after inactivity.</p>
+            <form id="loginForm">
+                <label for="loginUsername">Username</label><input id="loginUsername" autocomplete="username" required>
+                <label for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required>
+                <button class="btn btn-primary auth-submit" type="submit">Sign in</button>
+            </form>
+            <div id="firstPinSetup" hidden>
+                <hr><h2>Set transaction PIN</h2><p>Choose a separate 4-digit PIN required for withdrawals and transfers.</p>
+                <form id="pinSetupForm"><label for="setupPin">4-digit PIN</label><input id="setupPin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required>
+                <button class="btn btn-primary auth-submit" type="submit">Save PIN and continue</button></form>
+            </div>
+            <details class="auth-register"><summary>Need an account? Register</summary>
+                <form id="registerForm"><label for="registerUsername">Username</label><input id="registerUsername" minlength="4" required>
+                <label for="registerPassword">Password (8+ characters, upper/lowercase, number, symbol)</label><input id="registerPassword" type="password" minlength="8" required>
+                <label for="registerCustomer">Existing customer ID</label><input id="registerCustomer" type="number" min="1" required>
+                <button class="btn btn-secondary auth-submit" type="submit">Create user login</button></form>
+            </details>
+            <div id="authMessage" role="status" aria-live="polite"></div>
+        </div>
+    </div>
+    <div id="sessionWarning" class="session-warning" role="alertdialog" aria-live="assertive" hidden>
+        <span>You’ll be signed out in 60 seconds due to inactivity.</span>
+        <button id="staySignedIn" class="btn btn-primary btn-sm" type="button">Stay signed in</button>
+    </div>
+
+    <div class="app-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2L2 7h20L12 2z"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h2>NovaBank</h2>
+                    <span>DBMS & OOP System</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-tab="accounts">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    <span>Accounts</span>
+                </button>
+                <button class="nav-item" data-tab="transfer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+                    <span>Fund Transfer</span>
+                </button>
+                <button class="nav-item" data-tab="transactions">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    <span>Transactions</span>
+                </button>
+                <button class="nav-item" data-tab="loans">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    <span>Loans & Credit</span>
+                </button>
+                <button class="nav-item" data-tab="fds">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                    <span>Fixed Deposits</span>
+                </button>
+                <button class="nav-item" data-tab="customers">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>Customers</span>
+                </button>
+                <button class="nav-item" data-tab="branches">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    <span>Branches</span>
+                </button>
+                <button class="nav-item" data-tab="reports">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+                    <span>Analytics & Reports</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="db-status-pill" id="dbStatusPill" title="Click to test database connection">
+                    <span class="status-dot"></span>
+                    <span class="status-text" id="dbStatusText">Checking DB...</span>
+                    <button class="btn-icon-tiny" id="btnRefreshDb" title="Reconnect Database">🔄</button>
+                </div>
+                <div class="theme-switch-row">
+                    <span>Dark Theme</span>
+                    <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle theme">
+                        <span class="theme-toggle-slider"></span>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN VIEW -->
+        <main class="main-content">
+            <!-- TOP BAR -->
+            <header class="topbar">
+                <div class="topbar-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" id="globalSearchInput" placeholder="Quick search accounts, customers, IFSC...">
+                </div>
+                <div class="topbar-actions">
+                    <div class="system-time" id="systemClock"></div>
+                    <button class="btn btn-secondary btn-sm" onclick="App.openModal('modalDeposit')">
+                        <span>📥 Deposit</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="App.openModal('modalWithdraw')">
+                        <span>📤 Withdraw</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="App.openModal('modalOpenAccount')">
+                        <span>+ Open Account</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-body">
+
+                <!-- TAB: DASHBOARD -->
+                <section class="tab-pane active" id="pane-dashboard">
+                    <div class="page-title-row">
+                        <div>
+                            <h1>System Overview</h1>
+                            <p class="subtitle">Real-time status of accounts, liquidity, customers, and operations</p>
+                            <p id="lastLoginInfo" class="form-help" aria-live="polite"></p>
+                        </div>
+                        <div class="header-pills">
+                            <span class="badge badge-accent">JDK 27 & MySQL 8</span>
+                            <span class="badge badge-outline">ACID & Stored Procedures</span>
+                        </div>
+                    </div>
+
+                    <!-- STATS CARDS -->
+                    <div class="stats-grid">
+                        <div class="stat-card stat-primary">
+                            <div class="stat-icon">💰</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Deposits</span>
+                                <h3 class="stat-value" id="statDeposits">Rs. 0.00</h3>
+                                <span class="stat-sub">Across all savings & current accounts</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">💳</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Active Accounts</span>
+                                <h3 class="stat-value" id="statAccounts">0</h3>
+                                <span class="stat-sub">Savings & Current</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">👥</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Customers</span>
+                                <h3 class="stat-value" id="statCustomers">0</h3>
+                                <span class="stat-sub">Registered KYC clients</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🏛️</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Branch Network</span>
+                                <h3 class="stat-value" id="statBranches">0</h3>
+                                <span class="stat-sub">Operational Branches</span>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📑</div>
+                            <div class="stat-info">
+                                <span class="stat-label">Loan Volume</span>
+                                <h3 class="stat-value" id="statLoans">0</h3>
+                                <span class="stat-sub">Trigger-validated applications</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- QUICK ACTIONS ROW -->
+                    <div class="quick-actions-bar">
+                        <h3>Quick Banking Actions</h3>
+                        <div class="quick-action-buttons">
+                            <button class="quick-btn" onclick="App.openModal('modalOpenAccount')">
+                                <span class="icon">🏦</span>
+                                <div><strong>Open Account</strong><span>Savings or Current</span></div>
+                            </button>
+                            <button class="quick-btn" onclick="App.openModal('modalDeposit')">
+                                <span class="icon">💵</span>
+                                <div><strong>Deposit Cash</strong><span>Instant trigger ledger</span></div>
+                            </button>
+                            <button class="quick-btn" onclick="App.openModal('modalWithdraw')">
+                                <span class="icon">🏧</span>
+                                <div><strong>Withdraw Cash</strong><span>Polymorphic rule checks</span></div>
+                            </button>
+                            <button class="quick-btn" onclick="App.switchTab('transfer')">
+                                <span class="icon">🔁</span>
+                                <div><strong>Transfer Funds</strong><span>sp_transfer_funds</span></div>
+                            </button>
+                            <button class="quick-btn" onclick="App.openModal('modalApplyLoan')">
+                                <span class="icon">📝</span>
+                                <div><strong>Apply for Loan</strong><span>trg_check_loan trigger</span></div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- DASHBOARD SPLIT: RECENT ACTIVITY & BRANCH LIQUIDITY -->
+                    <div class="dashboard-split">
+                        <div class="card recent-txns-card">
+                            <div class="card-header">
+                                <div>
+                                    <h3>Recent Transaction Activity</h3>
+                                    <span class="card-subtitle">Automatic audit trail recorded by trg_log_transaction</span>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" onclick="App.switchTab('transactions')">View All</button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="dashboardTxnTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Txn ID</th>
+                                            <th>Account</th>
+                                            <th>Type</th>
+                                            <th>Amount</th>
+                                            <th>Balance After</th>
+                                            <th>Timestamp</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboardTxnBody">
+                                        <tr><td colspan="6" class="text-center">Loading transactions...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card branch-summary-card">
+                            <div class="card-header">
+                                <div>
+                                    <h3>Branch Liquidity Breakdown</h3>
+                                    <span class="card-subtitle">Aggregate data via SQL GROUP BY query</span>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" onclick="App.switchTab('reports')">Full Report</button>
+                            </div>
+                            <div class="branch-bars-container" id="dashboardBranchBars">
+                                <div class="text-center text-muted">Loading branch metrics...</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: ACCOUNTS -->
+                <section class="tab-pane" id="pane-accounts">
+                    <div class="page-title-row">
+                        <div>
+                            <h1>Bank Accounts</h1>
+                            <p class="subtitle">Complete view of customer accounts with polymorphic rules and passbook access</p>
+                        </div>
+                        <div class="actions-group">
+                            <button class="btn btn-primary" onclick="App.openModal('modalOpenAccount')">+ Open New Account</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-toolbar">
+                            <div class="toolbar-filters">
+                                <button class="filter-pill active" data-filter="all" onclick="App.filterAccounts('all')">All Accounts</button>
+                                <button class="filter-pill" data-filter="SAVINGS" onclick="App.filterAccounts('SAVINGS')">Savings (Min Rs. 1000, 4% Interest)</button>
+                                <button class="filter-pill" data-filter="CURRENT" onclick="App.filterAccounts('CURRENT')">Current (Overdraft Rs. 10,000)</button>
+                            </div>
+                            <div class="toolbar-search">
+                                <input type="text" id="accountSearchInput" placeholder="Filter by Account #, Name, IFSC..." oninput="App.renderAccountsTable()">
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="data-table" id="accountsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Account #</th>
+                                        <th>Customer</th>
+                                        <th>Branch</th>
+                                        <th>IFSC Code</th>
+                                        <th>Type</th>
+                                        <th>Balance (Rs.)</th>
+                                        <th>Opened Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="accountsTableBody">
+                                    <tr><td colspan="8" class="text-center">Loading accounts...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: FUND TRANSFER -->
+                <section class="tab-pane" id="pane-transfer">
+                    <div class="page-title-row">
+                        <div>
+                            <h1>Fund Transfer Portal</h1>
+                            <p class="subtitle">Atomic multi-account transfer executed via Stored Procedure <code>sp_transfer_funds</code></p>
+                        </div>
+                    </div>
+
+                    <div class="transfer-grid">
+                        <div class="card transfer-card">
+                            <div class="card-header">
+                                <h3>Transfer Details</h3>
+                                <span class="badge badge-accent">ACID Compliant</span>
+                            </div>
+                            <form id="transferForm" onsubmit="App.handleTransferSubmit(event)">
+                                <div class="form-group">
+                                    <label for="transferFrom">Source Account (Debited)</label>
+                                    <select id="transferFrom" required onchange="App.updateTransferSourceBalance()">
+                                        <option value="">Select source account...</option>
+                                    </select>
+                                    <div class="form-help" id="transferSourceBalanceText">Available Balance: -</div>
+                                </div>
+
+                                <div class="transfer-arrow-divider">
+                                    <div class="arrow-circle">⬇️</div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="transferTo">Target Account (Credited)</label>
+                                    <select id="transferTo" required>
+                                        <option value="">Select destination account...</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="transferAmount">Transfer Amount (Rs.)</label>
+                                    <input type="number" id="transferAmount" step="0.01" min="1" placeholder="Enter amount to transfer" required>
+                                    <div class="quick-amount-pills">
+                                        <button type="button" onclick="App.setTransferAmount(500)">Rs. 500</button>
+                                        <button type="button" onclick="App.setTransferAmount(1000)">Rs. 1,000</button>
+                                        <button type="button" onclick="App.setTransferAmount(2500)">Rs. 2,500</button>
+                                        <button type="button" onclick="App.setTransferAmount(5000)">Rs. 5,000</button>
+                                        <button type="button" onclick="App.setTransferAmount(10000)">Rs. 10,000</button>
+                                    </div>
+                                </div>
+
+                                <div class="form-group"><label for="transferPin">Transaction PIN (4 digits)</label><input id="transferPin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required></div>
+                                <button type="submit" class="btn btn-primary btn-block btn-lg" id="btnSubmitTransfer">
+                                    <span>Execute Stored Procedure Transfer</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="card transfer-info-card">
+                            <div class="card-header">
+                                <h3>DBMS Transaction Highlights</h3>
+                            </div>
+                            <div class="feature-bullets">
+                                <div class="bullet-item">
+                                    <div class="bullet-icon">🔒</div>
+                                    <div>
+                                        <strong>Pessimistic Row Locking</strong>
+                                        <p>Executes <code>SELECT ... FOR UPDATE</code> on source account to prevent concurrent race conditions.</p>
+                                    </div>
+                                </div>
+                                <div class="bullet-item">
+                                    <div class="bullet-icon">⚡</div>
+                                    <div>
+                                        <strong>Automatic Rollback</strong>
+                                        <p>If source balance is insufficient or target does not exist, transaction immediately executes <code>ROLLBACK</code>.</p>
+                                    </div>
+                                </div>
+                                <div class="bullet-item">
+                                    <div class="bullet-icon">📝</div>
+                                    <div>
+                                        <strong>Dual Trigger Auditing</strong>
+                                        <p>Database trigger <code>trg_log_transaction</code> automatically logs both <code>TRANSFER_OUT</code> and <code>TRANSFER_IN</code> ledger records.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="last-result-box" id="transferResultBox" style="display:none;">
+                                <h4>Procedure Output:</h4>
+                                <div id="transferResultText"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: TRANSACTIONS & MINI STATEMENT -->
+                <section class="tab-pane" id="pane-transactions">
+                    <div class="page-title-row">
+                        <div>
+                            <h1>Transaction Ledger & Mini-Statement</h1>
+                            <p class="subtitle">Complete financial audit log with stored procedure <code>sp_mini_statement</code> support</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-toolbar">
+                            <div class="mini-statement-selector">
+                                <label for="statementAccountSelect"><strong>Select Account for Mini-Statement:</strong></label>
+                                <select id="statementAccountSelect" onchange="App.loadAccountMiniStatement()">
+                                    <option value="">-- All Bank Transactions (Global Ledger) --</option>
+                                </select>
+                            </div>
+                            <div class="actions-group">
+                                <button class="btn btn-secondary btn-sm" onclick="App.exportTransactionsCSV()">📥 Export CSV</button>
+                                <button class="btn btn-secondary btn-sm" onclick="App.refreshTransactions()">🔄 Refresh</button>
+                                <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨️ Print Passbook</button>
+                            </div>
+                        </div>
+
+                        <div class="statement-banner" id="statementBanner" style="display: none;">
+                            <div class="statement-account-meta" id="statementMeta"></div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="data-table" id="transactionsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Txn #</th>
+                                        <th>Account #</th>
+                                        <th>Transaction Type</th>
+                                        <th>Amount (Rs.)</th>
+                                        <th>Balance After (Rs.)</th>
+                                        <th>Timestamp</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionsTableBody">
+                                    <tr><td colspan="6" class="text-center">Loading transactions...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: LOANS & CREDIT -->
+                <section class="tab-pane" id="pane-loans">
+                    <div class="page-title-row">
+                        <div>
+                            <h1>Loans & Credit Facilities</h1>
+                            <p class="subtitle">Loan applications validated by database trigger <code>trg_check_loan</code></p>
+                        </div>
+                        <div class="actions-group">
+                            <button class="btn btn-primary" onclick="App.openModal('modalApplyLoan')">+ Apply for Loan</button>
+                        </div>
+                    </div>
+
+                    <div class="alert-info-box">
+                        <span class="icon">🛡️</span>
+                        <div>
+                            <strong>Trigger Protection Rule (<code>trg_check_loan</code>):</strong>
+                            Loan applications are validated at the database layer. Any applicant without an active bank account is rejected with SQLSTATE 45000.
+                        </div>
+                    </div>
+
+                    <div class="loans-grid">
+                        <div class="card emi-calc-card">
+                            <div class="card-header">
+                                <h3>🧮 Interactive EMI Calculator</h3>
+                                <span class="badge badge-accent">Financial Tool</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="emiAmount">Loan Amount: <strong id="emiAmountLabel">Rs. 5,00,000</strong></label>
+                                <input type="range" id="emiAmount" min="25000" max="5000000" step="25000" value="500000" oninput="App.calculateEMI()">
+                            </div>
+                            <div class="form-group">
+                                <label for="emiRate">Annual Interest Rate: <strong id="emiRateLabel">8.5%</strong></label>
+                                <input type="range" id="emiRate" min="5" max="24" step="0.25" value="8.5" oninput="App.calculateEMI()">
+                            </div>
+                            <div class="form-group">
+                                <label for="emiTenure">Tenure: <strong id="emiTenureLabel">36 Months (3 Yrs)</strong></label>
+                                <input type="range" id="emiTenure" min="6" max="240" step="6" value="36" oninput="App.calculateEMI()">
+                            </div>
+                            <div class="emi-result-cards">
+                                <div class="emi-metric">
+                                    <span>Monthly EMI</span>
+                                    <strong id="emiMonthlyPayment">Rs. 0.00</strong>
+                                </div>
+                                <div class="emi-metric">
+                                    <span>Total Interest</span>
+                                    <strong id="emiTotalInterest">Rs. 0.00</strong>
+                                </div>
+                                <div class="emi-metric">
+                                    <span>Total Payable</span>
+                                    <strong id="emiTotalPayable">Rs. 0.00</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Loan Accounts & Facilities</h3>
+                                <span class="badge badge-outline">Database Trigger Audited</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="loansTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Loan ID</th>
+                                            <th>Customer</th>
+                                            <th>Branch</th>
+                                            <th>Type</th>
+                                            <th>Outstanding (Rs.)</th>
+                                            <th>Interest</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="loansTableBody">
+                                        <tr><td colspan="8" class="text-center">Loading loan applications...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: FIXED DEPOSITS (NEW FEATURE) -->
+                <section class="tab-pane" id="pane-fds">
+                    <div class="page-title-row">
+                        <div>
+                            <h1>Fixed Deposits & Term Investments</h1>
+                            <p class="subtitle">Guaranteed high-yield compound interest investments with customizable tenure</p>
+                        </div>
+                        <div class="actions-group">
+                            <button class="btn btn-primary" onclick="App.openModal('modalOpenFD')">+ Open Fixed Deposit</button>
+                        </div>
+                    </div>
+
+                    <div class="fd-grid">
+                        <div class="card fd-calc-card">
+                            <div class="card-header">
+                                <h3>💎 FD Yield & Compounding Calculator</h3>
+                                <span class="badge badge-accent">Compound Quarterly</span>
+                            </div>
+                            <div class="form-group">
+                                <label for="fdCalcPrincipal">Principal Investment (Rs.)</label>
+                                <input type="number" id="fdCalcPrincipal" min="1000" step="1000" value="50000" oninput="App.calculateFDProjection()">
+                                <div class="quick-amount-pills">
+                                    <button type="button" onclick="document.getElementById('fdCalcPrincipal').value = '25000'; App.calculateFDProjection()">Rs. 25k</button>
+                                    <button type="button" onclick="document.getElementById('fdCalcPrincipal').value = '50000'; App.calculateFDProjection()">Rs. 50k</button>
+                                    <button type="button" onclick="document.getElementById('fdCalcPrincipal').value = '100000'; App.calculateFDProjection()">Rs. 1 Lakh</button>
+                                    <button type="button" onclick="document.getElementById('fdCalcPrincipal').value = '500000'; App.calculateFDProjection()">Rs. 5 Lakh</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="fdCalcTenure">Tenure & Interest Rate</label>
+                                <select id="fdCalcTenure" onchange="App.calculateFDProjection()">
+                                    <option value="6" data-rate="5.50">6 Months (5.50% p.a.)</option>
+                                    <option value="12" data-rate="6.50" selected>12 Months / 1 Year (6.50% p.a.)</option>
+                                    <option value="24" data-rate="7.00">24 Months / 2 Years (7.00% p.a.)</option>
+                                    <option value="36" data-rate="7.40">36 Months / 3 Years (7.40% p.a.)</option>
+                                    <option value="60" data-rate="7.80">60 Months / 5 Years (7.80% p.a. - Tax Saver)</option>
+                                </select>
+                            </div>
+                            <div class="fd-projection-box">
+                                <div class="proj-item">
+                                    <span>Invested Capital</span>
+                                    <strong id="fdProjPrincipal">Rs. 50,000.00</strong>
+                                </div>
+                                <div class="proj-item">
+                                    <span>Interest Earned</span>
+                                    <strong id="fdProjInterest" style="color:var(--success);">Rs. 3,330.00</strong>
+                                </div>
+                                <div class="proj-item highlight">
+                                    <span>Maturity Payout</span>
+                                    <strong id="fdProjMaturity">Rs. 53,330.00</strong>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary btn-block" style="margin-top: 16px;" onclick="App.openModal('modalOpenFD')">
+                                Book This Fixed Deposit Now
+                            </button>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Active Fixed Deposit Certificates</h3>
+                                <span class="badge badge-outline">Auto-Rollover Available</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table" id="fdsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>FD #</th>
+                                            <th>Linked Account</th>
+                                            <th>Customer</th>
+                                            <th>Principal (Rs.)</th>
+                                            <th>Rate</th>
+                                            <th>Tenure</th>
+                                            <th>Maturity Date</th>
+                                            <th>Maturity Payout</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="fdsTableBody">
+                                        <tr><td colspan="10" class="text-center">Loading fixed deposits...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: CUSTOMERS -->
+                <section class="tab-pane" id="pane-customers">
+                    <div class="page-title-row">
+                        <div>
+                            <h1>Customer Directory</h1>
+                            <p class="subtitle">Registered bank customers with KYC details and linked accounts</p>
+                        </div>
+                        <div class="actions-group">
+                            <button class="btn btn-primary" onclick="App.openModal('modalAddCustomer')">+ Add Customer</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table" id="customersTable">
+                                <thead>
+                                    <tr>
+                                        <th>Customer ID</th>
+                                        <th>Full Name</th>
+                                        <th>Phone Number</th>
+                                        <th>Email Address</th>
+                                        <th>Residential Address</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customersTableBody">
+                                    <tr><td colspan="6" class="text-center">Loading customers...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: BRANCHES -->
+                <section class="tab-pane" id="pane-branches">
+                    <div class="page-title-row">
+                        <div>
+                            <h1>Branch Network</h1>
+                            <p class="subtitle">Physical branches with IFSC codes, cities, and aggregate metrics</p>
+                        </div>
+                        <div class="actions-group">
+                            <button class="btn btn-primary" onclick="App.openModal('modalAddBranch')">+ Add Branch</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table" id="branchesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Branch ID</th>
+                                        <th>Branch Name</th>
+                                        <th>IFSC Code</th>
+                                        <th>City</th>
+                                        <th>Total Accounts</th>
+                                        <th>Total Balance (Rs.)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="branchesTableBody">
+                                    <tr><td colspan="6" class="text-center">Loading branch directory...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB: ANALYTICS & REPORTS -->
+                <section class="tab-pane" id="pane-reports">
+                    <div class="page-title-row">
+                        <div>
+                            <h1>Branch Analytical Report</h1>
+                            <p class="subtitle">Aggregate SQL analytics grouped by branch network with total balances and liquidity</p>
+                        </div>
+                    </div>
+
+                    <div class="reports-grid">
+                        <div class="card">
+                            <div class="table-responsive">
+                                <table class="data-table" id="reportTable">
+                
+                            <div class="table-responsive">
+                                <table class="data-table" id="reportTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Branch ID</th>
+                                            <th>Branch Name</th>
+                                            <th>IFSC Code</th>
+                                            <th>City</th>
+                                            <th>Active Accounts</th>
+                                            <th>Total Balance (Rs.)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="reportTableBody">
+                                        <tr><td colspan="6" class="text-center">Loading report...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Branch Performance Breakdown</h3>
+                            </div>
+                            <div class="branch-bars-container" id="reportBranchBars">
+                                <div class="text-center text-muted">Loading metrics...</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- MODAL: OPEN ACCOUNT -->
+    <div class="modal-backdrop" id="modalOpenAccount">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Open New Bank Account</h3>
+                <button class="modal-close" onclick="App.closeModal('modalOpenAccount')">&times;</button>
+            </div>
+            <form id="formOpenAccount" onsubmit="App.handleOpenAccountSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="accCustomerId">Select Customer *</label>
+                        <select id="accCustomerId" required>
+                            <option value="">-- Choose Customer --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="accBranchId">Select Branch *</label>
+                        <select id="accBranchId" required>
+                            <option value="">-- Choose Branch --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="accType">Account Type *</label>
+                        <select id="accType" required onchange="App.handleAccTypeChange()">
+                            <option value="SAVINGS">Savings Account (4% Annual Interest, Min Rs. 1000)</option>
+                            <option value="CURRENT">Current Account (Overdraft up to Rs. 10,000, 0% Interest)</option>
+                        </select>
+                        <div class="form-help" id="accTypeRuleHelp">Minimum opening deposit: Rs. 1000.00</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="accInitialBalance">Opening Deposit Amount (Rs.) *</label>
+                        <input type="number" id="accInitialBalance" step="0.01" min="0" value="1000.00" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalOpenAccount')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Open Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: DEPOSIT -->
+    <div class="modal-backdrop" id="modalDeposit">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Deposit Cash Funds</h3>
+                <button class="modal-close" onclick="App.closeModal('modalDeposit')">&times;</button>
+            </div>
+            <form id="formDeposit" onsubmit="App.handleDepositSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="depositAccountSelect">Account No *</label>
+                        <select id="depositAccountSelect" required onchange="App.updateDepositPreview()">
+                            <option value="">-- Select Account --</option>
+                        </select>
+                        <div class="form-help" id="depositCurrentBal">Current Balance: -</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="depositAmount">Deposit Amount (Rs.) *</label>
+                        <input type="number" id="depositAmount" step="0.01" min="1" placeholder="Enter deposit amount" required>
+                        <div class="quick-amount-pills">
+                            <button type="button" onclick="document.getElementById('depositAmount').value = '1000'">Rs. 1,000</button>
+                            <button type="button" onclick="document.getElementById('depositAmount').value = '5000'">Rs. 5,000</button>
+                            <button type="button" onclick="document.getElementById('depositAmount').value = '10000'">Rs. 10,000</button>
+                        </div>
+                    </div>
+                    <div class="note-box">
+                        ⚡ <strong>Note:</strong> Transaction will be recorded by database trigger <code>trg_log_transaction</code>.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalDeposit')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Deposit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: WITHDRAW -->
+    <div class="modal-backdrop" id="modalWithdraw">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Withdraw Cash Funds</h3>
+                <button class="modal-close" onclick="App.closeModal('modalWithdraw')">&times;</button>
+            </div>
+            <form id="formWithdraw" onsubmit="App.handleWithdrawSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="withdrawAccountSelect">Account No *</label>
+                        <select id="withdrawAccountSelect" required onchange="App.updateWithdrawPreview()">
+                            <option value="">-- Select Account --</option>
+                        </select>
+                        <div class="form-help" id="withdrawCurrentBal">Current Balance: -</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="withdrawAmount">Withdrawal Amount (Rs.) *</label>
+                        <input type="number" id="withdrawAmount" step="0.01" min="1" placeholder="Enter withdrawal amount" required>
+                    </div>
+                    <div class="form-group"><label for="withdrawPin">Transaction PIN *</label><input id="withdrawPin" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required></div>
+                    <div class="note-box" id="withdrawRuleNote">
+                        ℹ️ Polymorphic withdrawal rules apply. Savings accounts require minimum balance of Rs. 1000. Current accounts allow overdraft up to Rs. 10,000.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalWithdraw')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Withdraw</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD CUSTOMER -->
+    <div class="modal-backdrop" id="modalAddCustomer">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Register New Customer</h3>
+                <button class="modal-close" onclick="App.closeModal('modalAddCustomer')">&times;</button>
+            </div>
+            <form id="formAddCustomer" onsubmit="App.handleAddCustomerSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="custName">Full Name *</label>
+                        <input type="text" id="custName" placeholder="e.g. Rahul Sharma" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="custPhone">Phone Number *</label>
+                        <input type="tel" id="custPhone" placeholder="10-digit mobile number" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="custEmail">Email Address</label>
+                        <input type="email" id="custEmail" placeholder="e.g. rahul@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="custAddress">Residential Address</label>
+                        <textarea id="custAddress" rows="2" placeholder="Street, City, Postal Code"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalAddCustomer')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Register Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD BRANCH -->
+    <div class="modal-backdrop" id="modalAddBranch">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Add New Branch</h3>
+                <button class="modal-close" onclick="App.closeModal('modalAddBranch')">&times;</button>
+            </div>
+            <form id="formAddBranch" onsubmit="App.handleAddBranchSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="brName">Branch Name *</label>
+                        <input type="text" id="brName" placeholder="e.g. Bandra West Branch" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="brIfsc">IFSC Code (11 characters) *</label>
+                        <input type="text" id="brIfsc" placeholder="e.g. BANK0001003" maxlength="11" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="brCity">City *</label>
+                        <input type="text" id="brCity" placeholder="e.g. Mumbai" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalAddBranch')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Branch</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: APPLY LOAN -->
+    <div class="modal-backdrop" id="modalApplyLoan">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Apply for Bank Loan</h3>
+                <button class="modal-close" onclick="App.closeModal('modalApplyLoan')">&times;</button>
+            </div>
+            <form id="formApplyLoan" onsubmit="App.handleApplyLoanSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="loanCustId">Customer *</label>
+                        <select id="loanCustId" required>
+                            <option value="">-- Choose Applicant --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="loanBranchId">Branch *</label>
+                        <select id="loanBranchId" required>
+                            <option value="">-- Choose Branch --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="loanType">Loan Facility Type *</label>
+                        <select id="loanType" required>
+                            <option value="HOME">Home Loan</option>
+                            <option value="PERSONAL">Personal Loan</option>
+                            <option value="CAR">Vehicle / Car Loan</option>
+                            <option value="EDUCATION">Education Loan</option>
+                            <option value="BUSINESS">Business Enterprise Loan</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="loanAmount">Loan Amount (Rs.) *</label>
+                        <input type="number" id="loanAmount" step="1000" min="1000" placeholder="e.g. 500000" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loanInterestRate">Annual Interest Rate (%) *</label>
+                        <input type="number" id="loanInterestRate" step="0.1" min="1" max="30" value="8.5" required>
+                    </div>
+                    <div class="alert-info-box">
+                        ⚠️ <strong>Trigger Check:</strong> If the selected applicant has no active account in the bank, trigger <code>trg_check_loan</code> will reject the loan!
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalApplyLoan')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Submit Application</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ACCOUNT PASSBOOK / VIEW DETAILS -->
+    <div class="modal-backdrop" id="modalAccountDetails">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3>Account Passbook Details</h3>
+                <button class="modal-close" onclick="App.closeModal('modalAccountDetails')">&times;</button>
+            </div>
+            <div class="modal-body" id="accountDetailsContent">
+                <div class="text-center">Loading details...</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalAccountDetails')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: OPEN FIXED DEPOSIT -->
+    <div class="modal-backdrop" id="modalOpenFD">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Open New Fixed Deposit (FD)</h3>
+                <button class="modal-close" onclick="App.closeModal('modalOpenFD')">&times;</button>
+            </div>
+            <form id="formOpenFD" onsubmit="App.handleOpenFDSubmit(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="fdSourceAccount">Debit From Account *</label>
+                        <select id="fdSourceAccount" required onchange="App.updateFDSourceBalance()">
+                            <option value="">-- Select Source Account --</option>
+                        </select>
+                        <div class="form-help" id="fdSourceBalText">Available Balance: -</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fdPrincipal">Deposit Principal (Rs.) *</label>
+                        <input type="number" id="fdPrincipal" min="1000" step="1000" value="25000" required oninput="App.updateFDModalProjection()">
+                    </div>
+                    <div class="form-group">
+                        <label for="fdTenure">Investment Tenure *</label>
+                        <select id="fdTenure" required onchange="App.updateFDModalProjection()">
+                            <option value="6" data-rate="5.50">6 Months (5.50% p.a.)</option>
+                            <option value="12" data-rate="6.50" selected>12 Months / 1 Year (6.50% p.a.)</option>
+                            <option value="24" data-rate="7.00">24 Months / 2 Years (7.00% p.a.)</option>
+                            <option value="36" data-rate="7.40">36 Months / 3 Years (7.40% p.a.)</option>
+                            <option value="60" data-rate="7.80">60 Months / 5 Years (7.80% p.a.)</option>
+                        </select>
+                    </div>
+                    <div class="note-box" id="fdModalProjection">
+                        💎 Estimated Maturity Value: <strong>Rs. 26,665.00</strong> (Maturity Date: -)
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalOpenFD')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Fixed Deposit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: PAY LOAN EMI -->
+    <div class="modal-backdrop" id="modalPayLoan">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Pay Loan EMI / Installment</h3>
+                <button class="modal-close" onclick="App.closeModal('modalPayLoan')">&times;</button>
+            </div>
+            <form id="formPayLoan" onsubmit="App.handlePayLoanSubmit(event)">
+                <input type="hidden" id="payLoanId">
+                <div class="modal-body">
+                    <div class="passbook-card" style="padding: 14px; margin-bottom: 14px;">
+                        <div id="payLoanMeta">Loading loan info...</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="payLoanAccount">Payment Debit Account *</label>
+                        <select id="payLoanAccount" required>
+                            <option value="">-- Choose Account --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="payLoanAmount">Payment Amount (Rs.) *</label>
+                        <input type="number" id="payLoanAmount" step="100" min="100" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalPayLoan')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Confirm EMI Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CUSTOMER 360° PORTFOLIO -->
+    <div class="modal-backdrop" id="modalCustomerPortfolio">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3>Customer 360° Financial Portfolio</h3>
+                <button class="modal-close" onclick="App.closeModal('modalCustomerPortfolio')">&times;</button>
+            </div>
+            <div class="modal-body" id="customerPortfolioContent">
+                <div class="text-center">Loading portfolio...</div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="App.closeModal('modalCustomerPortfolio')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATIONS CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

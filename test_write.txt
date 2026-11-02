@@ -1,0 +1,3 @@
+NovaBank - Bank Account Management System
+Full-stack setup complete with Web UI and REST API.
+Run .\run_server.bat to launch the application.

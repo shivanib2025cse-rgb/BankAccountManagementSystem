@@ -8,13 +8,21 @@ public abstract class Account {
     private final int branchId;
     private double balance;
     private final LocalDate openedOn;
+    private String status = "ACTIVE"; // ACTIVE, FROZEN, CLOSED
 
-    public Account(int accountNo, int customerId, int branchId, double balance, LocalDate openedOn) {
+    public Account(int accountNo, int customerId, int branchId, double balance, LocalDate openedOn, String status) {
         this.accountNo = accountNo;
         this.customerId = customerId;
         this.branchId = branchId;
         this.balance = balance;
         this.openedOn = openedOn;
+        if (status != null && !status.isBlank()) {
+            this.status = status.toUpperCase();
+        }
+    }
+
+    public Account(int accountNo, int customerId, int branchId, double balance, LocalDate openedOn) {
+        this(accountNo, customerId, branchId, balance, openedOn, "ACTIVE");
     }
 
     // Getters for encapsulation
@@ -38,12 +46,23 @@ public abstract class Account {
         return openedOn;
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = (status != null) ? status.toUpperCase() : "ACTIVE";
+    }
+
     protected void setBalance(double balance) {
         this.balance = balance;
     }
 
     // Common concrete method for deposit
     public void deposit(double amount) {
+        if (!"ACTIVE".equalsIgnoreCase(this.status)) {
+            throw new IllegalStateException("Operation rejected: Account #" + accountNo + " is currently " + status + ".");
+        }
         if (amount <= 0) {
             throw new IllegalArgumentException("Deposit amount must be greater than zero.");
         }

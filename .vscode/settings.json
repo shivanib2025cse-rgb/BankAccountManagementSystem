@@ -29,8 +29,9 @@
             "name": "mysqlll",
             "database": "bankdb",
             "username": "root",
-            "password": "shivani@2008",
+            "password": "Shivani@2008",
             "connectionTimeout": 30
         }
-    ]
+    ],
+    "java.debug.settings.onBuildFailureProceed": true
 }

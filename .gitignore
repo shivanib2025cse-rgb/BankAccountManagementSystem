@@ -1,2 +1,7 @@
 *.class
 lib/
+.env
+.env.*
+!.env.example
+lib/oracleJdk-27/
+backup.sql

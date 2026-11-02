@@ -1,13 +1,121 @@
-# Bank Account Management System (DBMS & OOP Mini Project)
+# Bank Account Management System (NovaBank)
+### Full-Stack DBMS & OOP System with Modern Web Frontend & REST Backend
 
-A complete, production-ready DBMS and OOP mini-project built with **Java (JDK 21)** and **MySQL 8**. The project demonstrates fundamental Relational Database Management System (RDBMS) concepts alongside Object-Oriented Programming (OOP) principles.
+A complete, production-ready full-stack banking platform built with **Java (JDK 21/27)**, **MySQL 8**, and a **Modern Responsive Web Frontend (HTML5/CSS3/Vanilla ES6+)**. The project combines enterprise DBMS principles (Stored Procedures, Triggers, Views, Transactions) with core OOP design (Inheritance, Polymorphism, Abstraction, Encapsulation) and provides both a **Web UI Dashboard** and a **Console CLI**.
+
+---
+
+## 🚀 Quick Start (One-Click Launch)
+
+### Option 1: Run the Modern Web Dashboard (Recommended)
+Double-click `run_server.bat` in Windows Explorer or run from PowerShell:
+```powershell
+.\run_server.bat
+```
+*(Or in PowerShell: `.\run_server.ps1`)*
+
+- Automatically compiles all Java classes.
+- Launches the embedded HTTP server on `http://localhost:8080`.
+- Automatically opens your default web browser to the modern dashboard!
+- Automatically connects to MySQL (`bankdb`), or activates seamless In-Memory Simulation if MySQL is offline.
+
+### Option 2: Run the Classic Console CLI
+Double-click `run_cli.bat` or run:
+```powershell
+.\run_cli.bat
+```
+*(Or compile manually: `javac -cp "lib/mysql-connector-j-8.3.0.jar;." *.java` followed by `java -cp ".;lib/mysql-connector-j-8.3.0.jar" Main`)*
+
+---
+
+## 🏛 Architecture & System Design
+
+```
++--------------------------------------------------------------------------------+
+|                        FRONTEND (Web Client - Single Page App)                 |
+|  - Modern Fintech UI Dashboard (Dark / Light Theme Toggle)                    |
+|  - Real-time Account Overview, Passbook Modal, Mini-Statement Viewer          |
+|  - Transfer Portal (sp_transfer_funds), Loan Application (trg_check_loan)      |
+|  - Branch Performance Analytics (GROUP BY aggregation charts)                 |
++--------------------------------------------------------------------------------+
+                                       |
+                                       | JSON REST API / Static Assets (Port 8080)
+                                       v
++--------------------------------------------------------------------------------+
+|                     BACKEND (Java SE HttpServer & REST Controllers)            |
+|  BankServer.java: High-performance embedded HTTP server with thread pool      |
+|  JsonUtil.java: Lightweight zero-dependency JSON serializer & parser          |
++--------------------------------------------------------------------------------+
+                                       |
+                                       v
++--------------------------------------------------------------------------------+
+|                         SERVICE & RESILIENCE LAYER                             |
+|  BankDataService.java: Auto-detects live MySQL database or runs resilient      |
+|                        In-Memory Simulation initialized with schema.sql seed.  |
++--------------------------------------------------------------------------------+
+                                       |
+                                       v
++--------------------------------------------------------------------------------+
+|                           DOMAIN OOP MODEL & DAO                               |
+|  - Account.java (Abstract Base Class)                                         |
+|    |-- SavingsAccount.java (Min balance Rs. 1000, 4% interest per annum)       |
+|    \-- CurrentAccount.java (Overdraft limit Rs. 10,000, 0% interest)          |
+|  - Customer.java, Branch.java, Loan.java, Transaction.java                     |
+|  - BankDAO.java: Executes JDBC statements, transactions, calls procedures      |
+|  - DBConnection.java: Manages JDBC connections to MySQL                       |
++--------------------------------------------------------------------------------+
+                                       |
+                                       v
++--------------------------------------------------------------------------------+
+|                           MYSQL 8 RELATIONAL DATABASE                          |
+|  - Tables: customer, branch, account, transactions, loan                       |
+|  - Triggers: trg_log_transaction (auto audit), trg_check_loan (validation)    |
+|  - Stored Procedures: sp_transfer_funds (ACID), sp_mini_statement             |
+|  - View: customer_account_view (JOIN query)                                   |
++--------------------------------------------------------------------------------+
+```
+
+---
+
+## 🌐 REST API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/health` | Returns server health and MySQL connection status |
+| `POST` | `/api/health` | Triggers a database reconnect test |
+| `GET` | `/api/stats` | Returns aggregated KPI metrics for the dashboard |
+| `GET` | `/api/accounts` | Lists all accounts with joined customer & branch info |
+| `GET` | `/api/accounts/{accNo}` | Returns detailed passbook info for an account |
+| `POST` | `/api/accounts` | Opens new account (`SAVINGS` or `CURRENT`) |
+| `POST` | `/api/accounts/{accNo}/status` | Updates account status (`ACTIVE`, `FROZEN`, `CLOSED`) |
+| `POST` | `/api/accounts/{accNo}/deposit` | Deposits cash; DB trigger auto-records ledger |
+| `POST` | `/api/accounts/{accNo}/withdraw` | Polymorphic withdrawal with rule validation |
+| `POST` | `/api/accounts/{accNo}/interest` | Calculates & applies annual interest dynamically |
+| `GET` | `/api/accounts/{accNo}/statement`| Fetches last 10 transactions via `sp_mini_statement` |
+| `POST` | `/api/transfer` | Executes atomic fund transfer via `sp_transfer_funds` |
+| `GET` | `/api/fds` | Lists all fixed deposits with projected yields |
+| `POST` | `/api/fds` | Opens fixed deposit with quarterly compounding |
+| `POST` | `/api/fds/{id}/close` | Premature or maturity liquidation of fixed deposit |
+| `GET` | `/api/loans` | Lists all loan applications with applicant & branch info |
+| `POST` | `/api/loans` | Submits loan application; validated by `trg_check_loan` |
+| `POST` | `/api/loans/{id}/status` | Manager approval or rejection of loan application |
+| `POST` | `/api/loans/{id}/pay` | Pays loan EMI / installment from selected account |
+| `GET` | `/api/customers` | Lists all registered customers |
+| `POST` | `/api/customers` | Registers a new customer |
+| `GET` | `/api/customers/{id}/portfolio` | Comprehensive Customer 360° Financial Portfolio |
+| `POST` | `/api/customers/{id}/update` | Updates customer contact & KYC profile |
+| `GET` | `/api/branches` | Lists all bank branches with IFSC codes |
+| `POST` | `/api/branches` | Adds a new bank branch |
+| `GET` | `/api/branches/report` | Returns SQL `GROUP BY` aggregate branch report |
+| `GET` | `/api/transactions` | Returns recent bank-wide audit transactions |
+| `GET` | `/api/transactions/csv` | Exports transaction ledger directly as downloadable CSV |
 
 ---
 
 ## 🛠 Tech Stack & Setup Guide
 
 ### 1. Prerequisites
-- **JDK 17 or later** (Tested on OpenJDK 21)
+- **JDK 17 or later** (Embedded Oracle JDK 27 is also included in `lib/oracleJdk-27`)
 - **MySQL Server 8.0 or later**
 - **MySQL Connector/J JAR** (`mysql-connector-j-8.3.0.jar` included in `lib/` directory)
 
@@ -17,27 +125,14 @@ A complete, production-ready DBMS and OOP mini-project built with **Java (JDK 21
    ```bash
    mysql -u root -p < schema.sql
    ```
-3. Open `DBConnection.java` and update the database credentials if necessary:
-   ```java
-   private static final String URL = "jdbc:mysql://localhost:3306/bankdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-   private static final String USER = "root";
-   private static final String PASSWORD = "password"; // Set your MySQL password here
-   ```
+3. Configure `DB_URL`, `DB_USER`, `DB_PASSWORD`, `JWT_SECRET` (at least 32 bytes), and `AES_KEY` in the process environment before starting the application. The application deliberately has no checked-in credential defaults.
 
-### 3. Compilation & Execution (Windows Command Line / PowerShell)
-Navigate to the project root directory (`BankAccountManagementSystem/`):
-
-#### Compile All Java Source Files:
+### 3. Compilation & Execution
+Simply run:
 ```powershell
-javac -cp "lib/mysql-connector-j-8.3.0.jar" *.java
+.\run_server.bat
 ```
-
-#### Run the Application:
-```powershell
-java -cp ".;lib/mysql-connector-j-8.3.0.jar" Main
-```
-
-*(Note: If using standard CMD, use `java -cp .;lib/mysql-connector-j-8.3.0.jar Main`)*
+The server will start on port `8080` and the browser will open automatically.
 
 ---
 

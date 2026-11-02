@@ -4,9 +4,7 @@ import java.sql.SQLException;
 
 // DATABASE CONNECTIVITY: Manages JDBC connections to MySQL database (bankdb)
 public class DBConnection {
-    private static final String URL = "jdbc:mysql://localhost:3306/bankdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
-    private static final String USER = "root";
-    private static final String PASSWORD = "shivani@2008"; // Modify password to match local MySQL setup
+    // Security: Requiring credentials from the environment prevents leaked repository credentials from exposing the database.
 
     static {
         try {
@@ -17,8 +15,35 @@ public class DBConnection {
         }
     }
 
-    // Returns a open database connection instance
+    public static String getUrl() {
+        return requiredEnv("DB_URL");
+    }
+
+    public static String getUser() {
+        return requiredEnv("DB_USER");
+    }
+
+    public static String getPassword() {
+        return requiredEnv("DB_PASSWORD");
+    }
+
+    private static String requiredEnv(String name) {
+        String value = System.getenv(name);
+        if (value == null || value.isBlank()) throw new IllegalStateException("Required environment variable is not configured: " + name);
+        return value;
+    }
+
+    // Returns an open database connection instance
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        return DriverManager.getConnection(getUrl(), getUser(), getPassword());
+    }
+
+    // Safely tests if the database connection can be established
+    public static boolean testConnection() {
+        try (Connection conn = getConnection()) {
+            return conn != null && !conn.isClosed();
+        } catch (Throwable t) {
+            return false;
+        }
     }
 }

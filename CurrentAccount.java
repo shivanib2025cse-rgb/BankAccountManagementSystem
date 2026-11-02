@@ -4,6 +4,10 @@ import java.time.LocalDate;
 public class CurrentAccount extends Account {
     private static final double OVERDRAFT_LIMIT = 10000.00;
 
+    public CurrentAccount(int accountNo, int customerId, int branchId, double balance, LocalDate openedOn, String status) {
+        super(accountNo, customerId, branchId, balance, openedOn, status);
+    }
+
     public CurrentAccount(int accountNo, int customerId, int branchId, double balance, LocalDate openedOn) {
         super(accountNo, customerId, branchId, balance, openedOn);
     }
@@ -11,6 +15,9 @@ public class CurrentAccount extends Account {
     // POLYMORPHISM: Concrete implementation of withdraw allowing overdraft up to Rs. 10,000
     @Override
     public void withdraw(double amount) throws InsufficientFundsException {
+        if (!"ACTIVE".equalsIgnoreCase(getStatus())) {
+            throw new IllegalStateException("Withdrawal rejected: Account #" + getAccountNo() + " is currently " + getStatus() + ".");
+        }
         if (amount <= 0) {
             throw new IllegalArgumentException("Withdrawal amount must be greater than zero.");
         }

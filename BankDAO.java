@@ -1,7 +1,9 @@
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 // DATA ACCESS OBJECT (DAO): All SQL operations, stored procedures, and triggers are executed here
 public class BankDAO {
@@ -78,7 +80,7 @@ public class BankDAO {
     }
 
     // Fetch Account helper (Polymorphism instantiation)
-   public Account getAccount(int accountNo) throws SQLException {
+    public Account getAccount(int accountNo) throws SQLException {
         String sql = "SELECT account_no, customer_id, branch_id, account_type, balance, opened_on FROM account WHERE account_no = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -194,13 +196,13 @@ public class BankDAO {
                         Account Type   : %s
                         Current Balance: Rs. %.2f
                         Date Opened    : %s
-                        "Customer ID    : %d
-                        "Customer Name  : %s
-                        "Phone          : %s
-                        "Email          : %s
-                        "Branch ID      : %d
-                        "Branch Name    : %s
-                        "IFSC Code      : %s
+                        Customer ID    : %d
+                        Customer Name  : %s
+                        Phone          : %s
+                        Email          : %s
+                        Branch ID      : %d
+                        Branch Name    : %s
+                        IFSC Code      : %s
                         ==================================================""",
                         rs.getInt("account_no"),
                         rs.getString("account_type"),
@@ -303,6 +305,211 @@ public class BankDAO {
                         rs.getString("branch_name"),
                         rs.getInt("total_accounts"),
                         rs.getDouble("total_balance")));
+            }
+        }
+        return report;
+    }
+
+    // --- ENHANCED API & WEB HELPERS ---
+
+    // Fetch all customers
+    public List<Customer> getAllCustomers() throws SQLException {
+        List<Customer> list = new ArrayList<>();
+        String sql = "SELECT customer_id, name, phone, email, address FROM customer ORDER BY customer_id ASC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                list.add(new Customer(
+                    rs.getInt("customer_id"),
+                    rs.getString("name"),
+                    rs.getString("phone"),
+                    rs.getString("email"),
+                    rs.getString("address")
+                ));
+            }
+        }
+        return list;
+    }
+
+    // Fetch single customer by ID
+    public Customer getCustomerById(int customerId) throws SQLException {
+        String sql = "SELECT customer_id, name, phone, email, address FROM customer WHERE customer_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, customerId);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Customer(
+                        rs.getInt("customer_id"),
+                        rs.getString("name"),
+                        rs.getString("phone"),
+                        rs.getString("email"),
+                        rs.getString("address")
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
+    // Fetch all branches
+    public List<Branch> getAllBranches() throws SQLException {
+        List<Branch> list = new ArrayList<>();
+        String sql = "SELECT branch_id, branch_name, ifsc_code, city FROM branch ORDER BY branch_id ASC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                list.add(new Branch(
+                    rs.getInt("branch_id"),
+                    rs.getString("branch_name"),
+                    rs.getString("ifsc_code"),
+                    rs.getString("city")
+                ));
+            }
+        }
+        return list;
+    }
+
+    // Fetch all accounts with joined customer and branch information
+    public List<AccountDetail> getAllAccountsDetailed() throws SQLException {
+        List<AccountDetail> list = new ArrayList<>();
+        String sql = "SELECT a.account_no, a.customer_id, c.name AS customer_name, c.phone, c.email, " +
+                     "a.branch_id, b.branch_name, b.ifsc_code, a.account_type, a.balance, a.opened_on " +
+                     "FROM account a " +
+                     "JOIN customer c ON a.customer_id = c.customer_id " +
+                     "JOIN branch b ON a.branch_id = b.branch_id " +
+                     "ORDER BY a.account_no ASC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                list.add(new AccountDetail(
+                    rs.getInt("account_no"),
+                    rs.getInt("customer_id"),
+                    rs.getString("customer_name"),
+                    rs.getString("phone"),
+                    rs.getString("email"),
+                    rs.getInt("branch_id"),
+                    rs.getString("branch_name"),
+                    rs.getString("ifsc_code"),
+                    rs.getString("account_type"),
+                    rs.getDouble("balance"),
+                    rs.getDate("opened_on").toLocalDate()
+                ));
+            }
+        }
+        return list;
+    }
+
+    // Fetch single account detailed representation
+    public AccountDetail getAccountDetail(int accountNo) throws SQLException {
+        String sql = "SELECT a.account_no, a.customer_id, c.name AS customer_name, c.phone, c.email, " +
+                     "a.branch_id, b.branch_name, b.ifsc_code, a.account_type, a.balance, a.opened_on " +
+                     "FROM account a " +
+                     "JOIN customer c ON a.customer_id = c.customer_id " +
+                     "JOIN branch b ON a.branch_id = b.branch_id " +
+                     "WHERE a.account_no = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, accountNo);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new AccountDetail(
+                        rs.getInt("account_no"),
+                        rs.getInt("customer_id"),
+                        rs.getString("customer_name"),
+                        rs.getString("phone"),
+                        rs.getString("email"),
+                        rs.getInt("branch_id"),
+                        rs.getString("branch_name"),
+                        rs.getString("ifsc_code"),
+                        rs.getString("account_type"),
+                        rs.getDouble("balance"),
+                        rs.getDate("opened_on").toLocalDate()
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
+    // Fetch all loans across all customers with details
+    public List<Map<String, Object>> getAllLoansDetailed() throws SQLException {
+        List<Map<String, Object>> list = new ArrayList<>();
+        String sql = "SELECT l.loan_id, l.customer_id, c.name AS customer_name, l.branch_id, b.branch_name, " +
+                     "l.loan_type, l.amount, l.interest_rate, l.status " +
+                     "FROM loan l " +
+                     "JOIN customer c ON l.customer_id = c.customer_id " +
+                     "JOIN branch b ON l.branch_id = b.branch_id " +
+                     "ORDER BY l.loan_id DESC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("loanId", rs.getInt("loan_id"));
+                map.put("customerId", rs.getInt("customer_id"));
+                map.put("customerName", rs.getString("customer_name"));
+                map.put("branchId", rs.getInt("branch_id"));
+                map.put("branchName", rs.getString("branch_name"));
+                map.put("loanType", rs.getString("loan_type"));
+                map.put("amount", rs.getDouble("amount"));
+                map.put("interestRate", rs.getDouble("interest_rate"));
+                map.put("status", rs.getString("status"));
+                list.add(map);
+            }
+        }
+        return list;
+    }
+
+    // Fetch recent transactions across all accounts
+    public List<Transaction> getAllTransactions(int limit) throws SQLException {
+        List<Transaction> list = new ArrayList<>();
+        String sql = "SELECT txn_id, account_no, txn_type, amount, txn_date, balance_after " +
+                     "FROM transactions " +
+                     "ORDER BY txn_date DESC, txn_id DESC " +
+                     "LIMIT ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, limit > 0 ? limit : 20);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Transaction(
+                        rs.getInt("txn_id"),
+                        rs.getInt("account_no"),
+                        rs.getString("txn_type"),
+                        rs.getDouble("amount"),
+                        rs.getTimestamp("txn_date"),
+                        rs.getDouble("balance_after")
+                    ));
+                }
+            }
+        }
+        return list;
+    }
+
+    // Structured branch report for charts and analytics
+    public List<Map<String, Object>> getBranchReportList() throws SQLException {
+        List<Map<String, Object>> report = new ArrayList<>();
+        String sql = "SELECT b.branch_id, b.branch_name, b.ifsc_code, b.city, " +
+                     "COUNT(a.account_no) AS total_accounts, COALESCE(SUM(a.balance), 0.00) AS total_balance " +
+                     "FROM branch b LEFT JOIN account a ON b.branch_id = a.branch_id " +
+                     "GROUP BY b.branch_id, b.branch_name, b.ifsc_code, b.city " +
+                     "ORDER BY b.branch_id ASC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("branchId", rs.getInt("branch_id"));
+                map.put("branchName", rs.getString("branch_name"));
+                map.put("ifscCode", rs.getString("ifsc_code"));
+                map.put("city", rs.getString("city"));
+                map.put("totalAccounts", rs.getInt("total_accounts"));
+                map.put("totalBalance", rs.getDouble("total_balance"));
+                report.add(map);
             }
         }
         return report;
