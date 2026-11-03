@@ -1441,7 +1441,7 @@ const App = (() => {
         if (banner && meta && acc) {
             banner.style.display = 'block';
             meta.innerHTML = `
-                Showing last 10 transactions for <strong>Account #${acc.accountNo}</strong> (${acc.customerName} | ${acc.accountType} | Current Balance: <strong>${formatCurrency(acc.balance)}</strong>) via Stored Procedure <code>sp_mini_statement</code>:
+                Showing the last 10 transactions for <strong>Account #${acc.accountNo}</strong> (${acc.customerName} | ${acc.accountType} | Current Balance: <strong>${formatCurrency(acc.balance)}</strong>):
             `;
         }
 

@@ -225,6 +225,7 @@ public class BankTest {
             service.updateAccountStatus(1003, "FROZEN");
             Account acc = service.getAccount(1003);
             assertCondition("FROZEN".equals(acc.getStatus()), "Account status is FROZEN");
+            assertCondition("FROZEN".equals(service.getAccountDetail(1003).getStatus()), "Account details report FROZEN status");
 
             // Attempt deposit on frozen account
             boolean depositBlocked = false;
@@ -247,6 +248,7 @@ public class BankTest {
             // Unfreeze account
             service.updateAccountStatus(1003, "ACTIVE");
             assertCondition("ACTIVE".equals(service.getAccount(1003).getStatus()), "Account unfrozen back to ACTIVE");
+            assertCondition("ACTIVE".equals(service.getAccountDetail(1003).getStatus()), "Account details report ACTIVE status");
             System.out.println("✅ [PASS] Test 11: Account freeze & status enforcement");
             passed++;
         } catch (Throwable t) {

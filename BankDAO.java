@@ -81,7 +81,7 @@ public class BankDAO {
 
     // Fetch Account helper (Polymorphism instantiation)
     public Account getAccount(int accountNo) throws SQLException {
-        String sql = "SELECT account_no, customer_id, branch_id, account_type, balance, opened_on FROM account WHERE account_no = ?";
+        String sql = "SELECT account_no, customer_id, branch_id, account_type, balance, opened_on, status FROM account WHERE account_no = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, accountNo);
@@ -93,12 +93,13 @@ public class BankDAO {
                     String type = rs.getString("account_type");
                     double bal = rs.getDouble("balance");
                     LocalDate date = rs.getDate("opened_on").toLocalDate();
+                    String status = rs.getString("status");
 
                     // Instantiating polymorphic concrete objects
                     if ("SAVINGS".equalsIgnoreCase(type)) {
-                        return new SavingsAccount(accNo, custId, branchId, bal, date);
+                        return new SavingsAccount(accNo, custId, branchId, bal, date, status);
                     } else {
-                        return new CurrentAccount(accNo, custId, branchId, bal, date);
+                        return new CurrentAccount(accNo, custId, branchId, bal, date, status);
                     }
                 }
             }
@@ -159,14 +160,16 @@ public class BankDAO {
         }
     }
 
-    // 7. Mini Statement (STORED PROCEDURE CALL: sp_mini_statement)
+    // 7. Mini Statement
     public List<Transaction> getMiniStatement(int accountNo) throws SQLException {
         List<Transaction> list = new ArrayList<>();
-        String sql = "{CALL sp_mini_statement(?)}";
+        String sql = "SELECT txn_id, account_no, txn_type, amount, txn_date, balance_after " +
+                     "FROM transactions WHERE account_no = ? " +
+                     "ORDER BY txn_date DESC, txn_id DESC LIMIT 10";
         try (Connection conn = DBConnection.getConnection();
-             CallableStatement cstmt = conn.prepareCall(sql)) {
-            cstmt.setInt(1, accountNo);
-            try (ResultSet rs = cstmt.executeQuery()) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, accountNo);
+            try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(new Transaction(
                         rs.getInt("txn_id"),
@@ -180,6 +183,16 @@ public class BankDAO {
             }
         }
         return list;
+    }
+
+    public boolean updateAccountStatus(int accountNo, String newStatus) throws SQLException {
+        String sql = "UPDATE account SET status = ? WHERE account_no = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newStatus);
+            pstmt.setInt(2, accountNo);
+            return pstmt.executeUpdate() > 0;
+        }
     }
 
     // 8. View Account Details (VIEW QUERY: customer_account_view JOIN query)
@@ -241,6 +254,88 @@ public class BankDAO {
             }
         }
         return -1;
+    }
+
+    public boolean updateLoanStatus(int loanId, String newStatus) throws SQLException {
+        String sql = "UPDATE loan SET status = ? WHERE loan_id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newStatus);
+            pstmt.setInt(2, loanId);
+            return pstmt.executeUpdate() > 0;
+        }
+    }
+
+    public boolean payLoanEMI(int loanId, int accountNo, double amount) throws SQLException, InsufficientFundsException {
+        try (Connection conn = DBConnection.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                double loanAmount;
+                String loanStatus;
+                String loanSql = "SELECT amount, status FROM loan WHERE loan_id = ? FOR UPDATE";
+                try (PreparedStatement pstmt = conn.prepareStatement(loanSql)) {
+                    pstmt.setInt(1, loanId);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new IllegalArgumentException("Loan #" + loanId + " not found.");
+                        }
+                        loanAmount = rs.getDouble("amount");
+                        loanStatus = rs.getString("status");
+                    }
+                }
+                if (!"APPROVED".equalsIgnoreCase(loanStatus)) {
+                    throw new IllegalStateException("Cannot pay towards loan with status: " + loanStatus);
+                }
+
+                Account account;
+                String accountSql = "SELECT account_no, customer_id, branch_id, account_type, balance, opened_on, status " +
+                                    "FROM account WHERE account_no = ? FOR UPDATE";
+                try (PreparedStatement pstmt = conn.prepareStatement(accountSql)) {
+                    pstmt.setInt(1, accountNo);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new IllegalArgumentException("Account #" + accountNo + " not found.");
+                        }
+                        int id = rs.getInt("account_no");
+                        int customerId = rs.getInt("customer_id");
+                        int branchId = rs.getInt("branch_id");
+                        double balance = rs.getDouble("balance");
+                        LocalDate openedOn = rs.getDate("opened_on").toLocalDate();
+                        String status = rs.getString("status");
+                        if ("SAVINGS".equalsIgnoreCase(rs.getString("account_type"))) {
+                            account = new SavingsAccount(id, customerId, branchId, balance, openedOn, status);
+                        } else {
+                            account = new CurrentAccount(id, customerId, branchId, balance, openedOn, status);
+                        }
+                    }
+                }
+
+                account.withdraw(amount);
+                double remainingAmount = Math.max(0.0, loanAmount - amount);
+                String updatedStatus = remainingAmount <= 0 ? "CLOSED" : "APPROVED";
+
+                try (PreparedStatement pstmt = conn.prepareStatement("SET @txn_type = 'LOAN_EMI', @txn_desc = 'Loan EMI payment'")) {
+                    pstmt.execute();
+                }
+                try (PreparedStatement pstmt = conn.prepareStatement("UPDATE account SET balance = ? WHERE account_no = ?")) {
+                    pstmt.setDouble(1, account.getBalance());
+                    pstmt.setInt(2, accountNo);
+                    pstmt.executeUpdate();
+                }
+                try (PreparedStatement pstmt = conn.prepareStatement("UPDATE loan SET amount = ?, status = ? WHERE loan_id = ?")) {
+                    pstmt.setDouble(1, remainingAmount);
+                    pstmt.setString(2, updatedStatus);
+                    pstmt.setInt(3, loanId);
+                    pstmt.executeUpdate();
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException | InsufficientFundsException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            }
+        }
     }
 
     // 10. View Loans of Customer (SUBQUERY / PREPARED STATEMENT)
@@ -376,7 +471,7 @@ public class BankDAO {
     public List<AccountDetail> getAllAccountsDetailed() throws SQLException {
         List<AccountDetail> list = new ArrayList<>();
         String sql = "SELECT a.account_no, a.customer_id, c.name AS customer_name, c.phone, c.email, " +
-                     "a.branch_id, b.branch_name, b.ifsc_code, a.account_type, a.balance, a.opened_on " +
+                     "a.branch_id, b.branch_name, b.ifsc_code, a.account_type, a.balance, a.opened_on, a.status " +
                      "FROM account a " +
                      "JOIN customer c ON a.customer_id = c.customer_id " +
                      "JOIN branch b ON a.branch_id = b.branch_id " +
@@ -396,7 +491,8 @@ public class BankDAO {
                     rs.getString("ifsc_code"),
                     rs.getString("account_type"),
                     rs.getDouble("balance"),
-                    rs.getDate("opened_on").toLocalDate()
+                    rs.getDate("opened_on").toLocalDate(),
+                    rs.getString("status")
                 ));
             }
         }
@@ -406,7 +502,7 @@ public class BankDAO {
     // Fetch single account detailed representation
     public AccountDetail getAccountDetail(int accountNo) throws SQLException {
         String sql = "SELECT a.account_no, a.customer_id, c.name AS customer_name, c.phone, c.email, " +
-                     "a.branch_id, b.branch_name, b.ifsc_code, a.account_type, a.balance, a.opened_on " +
+                     "a.branch_id, b.branch_name, b.ifsc_code, a.account_type, a.balance, a.opened_on, a.status " +
                      "FROM account a " +
                      "JOIN customer c ON a.customer_id = c.customer_id " +
                      "JOIN branch b ON a.branch_id = b.branch_id " +
@@ -427,7 +523,8 @@ public class BankDAO {
                         rs.getString("ifsc_code"),
                         rs.getString("account_type"),
                         rs.getDouble("balance"),
-                        rs.getDate("opened_on").toLocalDate()
+                        rs.getDate("opened_on").toLocalDate(),
+                        rs.getString("status")
                     );
                 }
             }

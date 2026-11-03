@@ -32,7 +32,7 @@ public class Loan {
 
     @Override
     public String toString() {
-        return String.format("Loan #%d | Cust ID: %d | Branch ID: %d | Type: %s | Amount: Rs. %.2f | Rate: %.2f%% | Status: %s",
+        return String.format("Loan %d | Cust ID: %d | Branch ID: %d | Type: %s | Amount: Rs. %.2f | Rate: %.2f%% | Status: %s",
                 loanId, customerId, branchId, loanType, amount, interestRate, status);
     }
 }

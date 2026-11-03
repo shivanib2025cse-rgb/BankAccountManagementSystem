@@ -225,7 +225,7 @@ public class BankDataService {
 
     public AccountDetail getAccountDetail(int accountNo) throws SQLException {
         if (useMySQL) {
-            try { return bankDAO.getAccountDetail(accountNo); } catch (SQLException e) { useMySQL = false; }
+            return bankDAO.getAccountDetail(accountNo);
         }
         Account a = memAccounts.get(accountNo);
         if (a == null) return null;
@@ -288,6 +288,9 @@ public class BankDataService {
     }
 
     public boolean updateAccountStatus(int accountNo, String newStatus) throws SQLException {
+        if (useMySQL) {
+            return bankDAO.updateAccountStatus(accountNo, newStatus);
+        }
         Account acc = memAccounts.get(accountNo);
         if (acc == null) return false;
         acc.setStatus(newStatus);
@@ -391,7 +394,7 @@ public class BankDataService {
     // sp_mini_statement simulation
     public List<Transaction> getMiniStatement(int accountNo) throws SQLException {
         if (useMySQL) {
-            try { return bankDAO.getMiniStatement(accountNo); } catch (SQLException e) { useMySQL = false; }
+            return bankDAO.getMiniStatement(accountNo);
         }
         List<Transaction> list = new ArrayList<>();
         synchronized (memTransactions) {
@@ -561,7 +564,10 @@ public class BankDataService {
         return newLoanId;
     }
 
-    public boolean updateLoanStatus(int loanId, String newStatus) {
+    public boolean updateLoanStatus(int loanId, String newStatus) throws SQLException {
+        if (useMySQL) {
+            return bankDAO.updateLoanStatus(loanId, newStatus);
+        }
         for (Loan l : memLoans) {
             if (l.getLoanId() == loanId) {
                 // Replace with updated status
@@ -575,6 +581,9 @@ public class BankDataService {
 
     // Pay Loan EMI
     public synchronized boolean payLoanEMI(int loanId, int accountNo, double amount) throws SQLException, InsufficientFundsException {
+        if (useMySQL) {
+            return bankDAO.payLoanEMI(loanId, accountNo, amount);
+        }
         Loan targetLoan = null;
         for (Loan l : memLoans) {
             if (l.getLoanId() == loanId) {
@@ -599,7 +608,7 @@ public class BankDataService {
         memTransactions.add(new Transaction(
             txnIdSeq.incrementAndGet(),
             accountNo,
-            "WITHDRAW",
+            "LOAN_EMI",
             amount,
             new Timestamp(System.currentTimeMillis()),
             acc.getBalance()
