@@ -408,4 +408,11 @@ proc: BEGIN
     SET p_message = 'SUCCESS';
 END//
 
+CREATE PROCEDURE sp_mini_statement(IN p_acc INT)
+BEGIN
+    SELECT txn_id, account_no, txn_type, amount, txn_date, balance_after
+    FROM transactions WHERE account_no = p_acc
+    ORDER BY txn_date DESC, txn_id DESC LIMIT 10;
+END//
+
 DELIMITER ;

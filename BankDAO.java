@@ -163,13 +163,11 @@ public class BankDAO {
     // 7. Mini Statement
     public List<Transaction> getMiniStatement(int accountNo) throws SQLException {
         List<Transaction> list = new ArrayList<>();
-        String sql = "SELECT txn_id, account_no, txn_type, amount, txn_date, balance_after " +
-                     "FROM transactions WHERE account_no = ? " +
-                     "ORDER BY txn_date DESC, txn_id DESC LIMIT 10";
+        String sql = "{CALL sp_mini_statement(?)}";
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, accountNo);
-            try (ResultSet rs = pstmt.executeQuery()) {
+             CallableStatement cstmt = conn.prepareCall(sql)) {
+            cstmt.setInt(1, accountNo);
+            try (ResultSet rs = cstmt.executeQuery()) {
                 while (rs.next()) {
                     list.add(new Transaction(
                         rs.getInt("txn_id"),
